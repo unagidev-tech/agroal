@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.agroal</groupId>
     <artifactId>agroal-parent</artifactId>
-    <version>3.2.1</version>
+    <version>3.3</version>
   </parent>
   <artifactId>agroal-integration-tests</artifactId>
   <name>Agroal Integration Tests</name>
@@ -97,7 +97,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.11</version>
+      <version>42.7.12</version>
       <scope>test</scope>
     </dependency>
     <!-- MySQL DB -->
@@ -118,7 +118,7 @@
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
-      <version>3.5.3</version>
+      <version>3.5.9</version>
       <scope>test</scope>
     </dependency>
     <!-- Testcontainers -->

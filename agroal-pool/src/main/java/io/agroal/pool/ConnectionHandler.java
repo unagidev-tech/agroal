@@ -86,6 +86,9 @@ public final class ConnectionHandler implements TransactionAware, Acquirable {
     private final int defaultIsolationLevel;
     private final int defaultHoldability;
 
+    // Generation of the pool when this connection was created. See stale pool handling in ConnectionPool
+    private final long generation;
+
     // flag to indicate the connection is held
     private boolean isHeldOverCommit;
 
@@ -98,6 +101,10 @@ public final class ConnectionHandler implements TransactionAware, Acquirable {
     private SQLCallable<Boolean> transactionActiveCheck = NO_ACTIVE_TRANSACTION;
 
     public ConnectionHandler(XAConnection xa, Pool pool, int isolationLevel, int holdability) throws SQLException {
+        this( xa, pool, isolationLevel, holdability, 0 );
+    }
+
+    public ConnectionHandler(XAConnection xa, Pool pool, int isolationLevel, int holdability, long generation) throws SQLException {
         xaConnection = xa;
         connection = xaConnection.getConnection();
         xaResource = xaConnection.getXAResource();
@@ -105,6 +112,7 @@ public final class ConnectionHandler implements TransactionAware, Acquirable {
         connectionPool = pool;
         defaultIsolationLevel = isolationLevel;
         defaultHoldability = holdability;
+        this.generation = generation;
         touch();
     }
 
@@ -140,6 +148,29 @@ public final class ConnectionHandler implements TransactionAware, Acquirable {
 
     public XAResource getXaResource() {
         return xaResource;
+    }
+
+    // --- Request Boundaries (JDBC 4.3) --- //
+
+    // Called by the pool when the connection is handed out, marking the start of a request.
+    // Per the JDBC contract a duplicate beginRequest() without an intervening endRequest() is ignored by the driver.
+    public void beginRequest() throws SQLException {
+        try {
+            connection.beginRequest();
+        } catch ( SQLException se ) {
+            setFlushOnly( se );
+            throw se;
+        }
+    }
+
+    // Called by the pool when the connection is returned, marking the end of a request.
+    public void endRequest() throws SQLException {
+        try {
+            connection.endRequest();
+        } catch ( SQLException se ) {
+            setFlushOnly( se );
+            throw se;
+        }
     }
 
     @SuppressWarnings( "MagicConstant" )
@@ -284,6 +315,10 @@ public final class ConnectionHandler implements TransactionAware, Acquirable {
 
     public void touch() {
         lastAccess = nanoTime();
+    }
+
+    public long getGeneration() {
+        return generation;
     }
 
     public boolean isLeak(Duration timeout) {
